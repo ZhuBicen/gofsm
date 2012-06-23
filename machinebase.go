@@ -4,34 +4,50 @@ import (
 	"errors"
 )
 
-type FSM interface {
-	GetName() string
+type StateMachine interface {
+	Name() string
+	SetName(string)
 	SetInitialState(state State)
 	ProcessEvent(event Event) (bool, error)
 	StateTransition(state State)
 	Terminate()
-	DeferEvent(Event)
-	SendInternalEvent(Event)
-	
+	//DeferEvent(Event)
+	//SendInternalEvent(Event)
+	InitFSM()
 	CurrentState() State
 }
 
-type FSMBase struct {
+type StateMachineBase struct {
 	name string
 	currentState State
 	newState State
 }
 
-func (this *FSMBase) GetName() string {
+func (this *StateMachineBase) Name() string {
 	return this.name
 }
 
-func (this *FSMBase) SetInitialState(state State) {
+func (this *StateMachineBase) SetName(name string) {
+	this.name = name
+}
+
+func (this *StateMachineBase) CurrentState() State {
+	return this.currentState
+}
+
+func (this *StateMachineBase) SetInitialState(state State) {
 	this.StateTransition(state)
 	this.enterNewState()
 }
 
-func (this *FSMBase) ProcessEvent(event Event) (bool, error) {
+func (this *StateMachineBase) Terminate() {
+	if this.currentState != nil {
+		this.currentState.ExitAction()
+		this.currentState = nil
+	}
+}
+
+func (this *StateMachineBase) ProcessEvent(event Event) (bool, error) {
 	if this.currentState == nil {
 		return false, errors.New("Strange error, no current state")
 	}
@@ -46,7 +62,7 @@ func (this *FSMBase) ProcessEvent(event Event) (bool, error) {
 
 }
 
-func (this *FSMBase) enterNewState() {
+func (this *StateMachineBase) enterNewState() {
 	for this.newState != nil {
 		callExitActionsAndSetHistoryState(this.currentState, this.newState)
 		callEntryActions(this.currentState, this.newState)
@@ -59,11 +75,11 @@ func (this *FSMBase) enterNewState() {
 	
 }
 
-func (this *FSMBase) StateTransition(newState State) {
+func (this *StateMachineBase) StateTransition(newState State) {
 	this.newState = newState
 }
 
-func (this *FSMBase) consumeEvent(event Event) bool {
+func (this *StateMachineBase) consumeEvent(event Event) bool {
 	tryingState := this.currentState
 	for tryingState != nil {
 		consumed := tryingState.HandleEvent(event)
@@ -76,7 +92,10 @@ func (this *FSMBase) consumeEvent(event Event) bool {
 	}
 	return false
 }
-	
+
+func (this *StateMachineBase) InitFSM() {
+
+}	
 	
 
 func callExitActionsAndSetHistoryState(currentState State, newState State) {
@@ -122,7 +141,7 @@ func callEntryActions(currentState State, newState State){
 		entryState = entryState.SuperState()
 
 		if entryState == nil {
-			return
+			break
 		}
 
 		sourceState := currentState

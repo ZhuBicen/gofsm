@@ -2,6 +2,7 @@ package gofsm
 
 type State interface {
 	Name() string
+	SetName(name string)
 	
 	SetSuperState(State)
 	SuperState() State
@@ -30,11 +31,30 @@ type StateBase struct {
 	deepHistory State
 	shallowHistory State
 	initState State
-	fsm FSM
+	fsm StateMachine
 }
 
-func (this *StateBase) GetName() string {
+func NewStateBase(name string, fsm StateMachine) *StateBase{
+	return &StateBase{
+		name : name,
+		fsm: fsm,
+	}
+}
+
+func (this *StateBase) StateMachine() StateMachine {
+	return this.fsm
+}
+
+func (this *StateBase) SetStateMachine( m StateMachine ) {
+	this.fsm = m
+}
+
+func (this *StateBase) Name() string {
 	return this.name
+}
+
+func (this *StateBase) SetName(name string) {
+	this.name = name
 }
 
 func (this *StateBase) SetSuperState(superState State) {
