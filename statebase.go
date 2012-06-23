@@ -3,16 +3,16 @@ package gofsm
 type State interface {
 	Name() string
 	
-	SetSuperState(*State)
-	SuperState() *State
+	SetSuperState(State)
+	SuperState() State
 	
-	SetShallowHistory(*State)
-	ShallowHistory() *State
+	SetShallowHistory(State)
+	ShallowHistory() State
 
-	SetDeepHistory(*State)
-	DeepHistory() *State
+	SetDeepHistory(State)
+	DeepHistory() State
 	
-	HandleEvent(*Event) bool
+	HandleEvent(Event) bool
 
 	EntryAction()
 	ExitAction()
@@ -26,41 +26,42 @@ type CompositeState interface{
 
 type StateBase struct {
 	name string
-	superState *State
-	deepHistory *State
-	shallowHistory *State
-	initState *State
+	superState State
+	deepHistory State
+	shallowHistory State
+	initState State
+	fsm FSM
 }
 
-func (this *StateBase) GetName() {
-	return name
+func (this *StateBase) GetName() string {
+	return this.name
 }
 
-func (this *StateBase) SetSuperState(superSate *State) {
+func (this *StateBase) SetSuperState(superState State) {
 	this.superState = superState
 }
 
-func (this *StateBase) SuperState() *State {
+func (this *StateBase) SuperState() State {
 	return this.superState
 }
 
-func (this *StateBase) SetDeepHistory(deepHistory *State) {
+func (this *StateBase) SetDeepHistory(deepHistory State) {
 	this.deepHistory = deepHistory
 }
 
-func (this *StateBase) DeepHistory() *State {
+func (this *StateBase) DeepHistory() State {
 	return this.deepHistory
 }
 
-func (this *StateBase) SetShallowHistory(shallowHistory *State) {
+func (this *StateBase) SetShallowHistory(shallowHistory State) {
 	this.shallowHistory = shallowHistory
 }
 
-func (this *StateBase) ShallowHistory() *State {
+func (this *StateBase) ShallowHistory() State {
 	return this.shallowHistory
 }
 
-func (this *StateBase) HandleEvent(*Event) bool{
+func (this *StateBase) HandleEvent(Event) bool{
 	return false
 }
 
@@ -73,17 +74,15 @@ func (this *StateBase) ExitAction() {
 
 type CompositeStateBase struct {
 	StateBase
-	initState *StateBase
+	initState State
 }
 
-func (this *CompositeStateBase) SetInitTransition(initState *State) {
+func (this *CompositeStateBase) SetInitTransition(initState State) {
 	this.initState = initState
 }
 
 func (this *CompositeStateBase) InitTransition() {
-	if this.initState {
-		this.fsm.StateTransition(this.InitState)
-	}
+	this.fsm.StateTransition(this.initState)
 }
 
 

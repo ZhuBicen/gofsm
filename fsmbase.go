@@ -6,32 +6,32 @@ import (
 
 type FSM interface {
 	GetName() string
-	SetInitialState(state *State)
-	ProcessEvent(event *Event) (bool, error)
-	StateTransition(state *State)
+	SetInitialState(state State)
+	ProcessEvent(event Event) (bool, error)
+	StateTransition(state State)
 	Terminate()
-	DeferEvent(event* Event)
-	SendInternalEvent(*Event)
+	DeferEvent(Event)
+	SendInternalEvent(Event)
 	
-	CurrentState() *State
+	CurrentState() State
 }
 
 type FSMBase struct {
 	name string
-	currentState *State
-	newState *State
+	currentState State
+	newState State
 }
 
 func (this *FSMBase) GetName() string {
 	return this.name
 }
 
-func (this *FSMBase) SetInitialState(state *State) {
+func (this *FSMBase) SetInitialState(state State) {
 	this.StateTransition(state)
 	this.enterNewState()
 }
 
-func (this *FSMBase) ProcessEvent(event *Event) (bool, error) {
+func (this *FSMBase) ProcessEvent(event Event) (bool, error) {
 	if this.currentState == nil {
 		return false, errors.New("Strange error, no current state")
 	}
@@ -42,6 +42,7 @@ func (this *FSMBase) ProcessEvent(event *Event) (bool, error) {
 	if this.newState != nil {
 		this.enterNewState()
 	}
+	return true, nil
 
 }
 
@@ -58,11 +59,11 @@ func (this *FSMBase) enterNewState() {
 	
 }
 
-func (this *FSMBase) StateTransition(newState *State) {
+func (this *FSMBase) StateTransition(newState State) {
 	this.newState = newState
 }
 
-func (this *FSMBase) consumeEvent(event *Event) bool {
+func (this *FSMBase) consumeEvent(event Event) bool {
 	tryingState := this.currentState
 	for tryingState != nil {
 		consumed := tryingState.HandleEvent(event)
@@ -70,7 +71,7 @@ func (this *FSMBase) consumeEvent(event *Event) bool {
 			return true
 		}
 		if !consumed {
-			tryingState = tryingState.GetSuperState()
+			tryingState = tryingState.SuperState()
 		}
 	}
 	return false
@@ -78,7 +79,7 @@ func (this *FSMBase) consumeEvent(event *Event) bool {
 	
 	
 
-func callExitActionsAndSetHistoryState(currentState *State, newState *State) {
+func callExitActionsAndSetHistoryState(currentState State, newState State) {
 	if currentState == nil {
 		return
 	}
@@ -95,30 +96,30 @@ func callExitActionsAndSetHistoryState(currentState *State, newState *State) {
 		for targetState != nil{
 			//if current existing state is one of the super state of target state
 			//there is no need to do the exit action
-			if existingState == targetState.GetSuperState() {
+			if existingState == targetState.SuperState() {
 				return
 			}
-			targetState = targetState.GetSuperState()
+			targetState = targetState.SuperState()
 		}
 
-		if existingState.GetSuperState() != nil {
-			existingState.GetSuperState().SetShallowHistory(existingState)
-			existingState.GetSuperState().SetDeepHistory(currentState)
+		if existingState.SuperState() != nil {
+			existingState.SuperState().SetShallowHistory(existingState)
+			existingState.SuperState().SetDeepHistory(currentState)
 		}
 		
 		existingState.ExitAction()
-		existingState = existingState.GetSuperState()
+		existingState = existingState.SuperState()
 	}
 }
 
-func callEntryActions(currentState *State, newState *State){
+func callEntryActions(currentState State, newState State){
 	entryState := newState
-	entryStateSlice := make(State, 0)
+	entryStateSlice := make([]State, 0)
 	for entryState != nil {
 
 		entryStateSlice = append(entryStateSlice, entryState)
 		
-		entryState = entryState.GetSuperState()
+		entryState = entryState.SuperState()
 
 		if entryState == nil {
 			return
@@ -132,7 +133,7 @@ func callEntryActions(currentState *State, newState *State){
 			if sourceState == entryState {
 				return
 			}
-			sourceState = sourceState.GetSuperState()
+			sourceState = sourceState.SuperState()
 		}
 	}
 
