@@ -23,6 +23,7 @@ type State interface {
 type CompositeState interface{
 	State
 	InitTransition()
+	SetInitTransition(State)
 }
 
 type StateBase struct {

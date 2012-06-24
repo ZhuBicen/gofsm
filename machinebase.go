@@ -150,7 +150,7 @@ func callEntryActions(currentState State, newState State){
 			//if curent entry state is one of the super state of the source state
 			//there is no need to do the exit action
 			if sourceState == entryState {
-				return
+				break
 			}
 			sourceState = sourceState.SuperState()
 		}

@@ -28,6 +28,7 @@ func NewActiveState(name string, m fsm.StateMachine) *ActiveState {
 func (this *ActiveState)HandleEvent(evt fsm.Event) bool {
 	if evt.MessageId() == EVENT_RESET_ID {
 		fmt.Println("Active state, Received EVENT_RESET_ID")
+		this.elapsedTime = 0
 		return true
 	}
 	return false
@@ -48,7 +49,7 @@ func NewRunningState(name string, m fsm.StateMachine) *RunningState {
 }
 
 func (this *RunningState) EntryAction() {
-	fmt.Println("Entering running state")
+	fmt.Println("Entering RunningState")
 	this.startTime = time.Now()
 }
 
@@ -56,11 +57,12 @@ func (this *RunningState) ExitAction() {
 
 	stopWatch := this.StateMachine().(*StopWatch)
 	stopWatch.ActiveState.(*ActiveState).elapsedTime += time.Since(this.startTime)
-	fmt.Println("Exiting running state", stopWatch.ActiveState.(*ActiveState).elapsedTime)
+	fmt.Println("Exiting RunningState", stopWatch.ActiveState.(*ActiveState).elapsedTime)
 }
 
 func (this *RunningState) HandleEvent(evt fsm.Event) bool{
 	if evt.MessageId() == EVENT_STARTSTOP_ID {
+		fmt.Println("RunningState, received EVENT_STARTSTOP_ID")
 		stopWatch, _ := this.StateMachine().(*StopWatch)
 		stopWatch.StateTransition(stopWatch.StoppedState)
 		return true
@@ -83,6 +85,7 @@ func NewStoppedState(name string, m fsm.StateMachine) *StoppedState {
 
 func (this *StoppedState) HandleEvent(evt fsm.Event) bool {
 	if evt.MessageId() == EVENT_STARTSTOP_ID {
+		fmt.Println("StoppedState received EVENT_STARTSTOP_ID")
 		stopWatch, _ := this.StateMachine().(*StopWatch)
 		stopWatch.StateTransition(stopWatch.RunningState)
 		return true
@@ -90,10 +93,18 @@ func (this *StoppedState) HandleEvent(evt fsm.Event) bool {
 	return false
 }
 
+func (this *StoppedState) EntryAction() {
+	fmt.Println("Entering StoppedState")
+}
+
+func (this *StoppedState) ExitAction() {
+	fmt.Println("Exiting StoppedState")
+}
+
 //state machine
 type StopWatch struct {
 	fsm.StateMachineBase
-	ActiveState fsm.State
+	ActiveState fsm.CompositeState
 	RunningState fsm.State
 	StoppedState fsm.State
 }
@@ -106,10 +117,11 @@ func (this *StopWatch) InitMachine() {
 	this.ActiveState  = NewActiveState("ActiveState", this)
 	this.RunningState = NewRunningState("RunningState", this)
 	this.StoppedState = NewStoppedState("StoppedState", this)
-	this.SetInitialState(this.ActiveState)
 	this.RunningState.SetSuperState(this.ActiveState)
 	this.StoppedState.SetSuperState(this.ActiveState)
-	this.ActiveState.(fsm.CompositeState).SetInitTransition(this.StoppedState)
+	this.ActiveState.SetInitTransition(this.StoppedState)
+
+	this.SetInitialState(this.ActiveState)
 }
 
 func(this *StopWatch) ElapsedTime() time.Duration{
