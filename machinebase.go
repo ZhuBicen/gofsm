@@ -68,9 +68,9 @@ func (this *StateMachineBase) enterNewState() {
 		callEntryActions(this.currentState, this.newState)
 		this.currentState = this.newState
 		this.newState = nil
-		// if cs, ok := this.currentState.(CompositeState);  ok {
-		// 	cs.InitTransition()
-		// }
+		if cs, ok := this.currentState.(CompositeState);  ok {
+			cs.InitTransition()
+		}
 	}
 	
 }

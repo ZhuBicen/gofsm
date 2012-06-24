@@ -11,3 +11,7 @@ type EventBase struct{
 func (this *EventBase) MessageId() int {
 	return this.id
 }
+
+func NewEventBase(messageId int) *EventBase {
+	return &EventBase{ id: messageId }
+}
